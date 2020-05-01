@@ -84,7 +84,7 @@ sha256sum :: (data: []u8) -> string {
         0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
         0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
     };
-    H := sha256base(data, init);
+    H := shabase(u32, data, init);
     digest: String_Builder;
     for 0..7 append(*digest, sprint("%", formatInt(H[it], base=16, minimum_digits=8)));
     return builder_to_string(*digest);
@@ -101,92 +101,12 @@ sha224sum :: (data: []u8) -> string {
         0xffc00b31, 0x68581511, 0x64f98fa7, 0xbefa4fa4
     };
 
-    H := sha256base(data, init);
+    H := shabase(u32, data, init);
     digest: String_Builder;
     for 0..6 append(*digest, sprint("%", formatInt(H[it], base=16, minimum_digits=8)));
     return builder_to_string(*digest);
 }
 
-sha256base :: (data: []u8, init: [8]u32) -> [8]u32 {
-    // This function is used for SHA256 and SHA224.
-    // Only difference is initialization vector and output length.
-
-    ROTR :: (x: u32, n: u32) -> u32 { return ((x >> n) | (x << (32-n))); }
-    ROTL :: (x: u32, n: u32) -> u32 { return ((x << n) | (x >> (32-n))); }
-    SHR  :: (x: u32, n: u32) -> u32 { return (x >> n); }
-    SHL  :: (x: u32, n: u32) -> u32 { return (x << n); }
-    CH :: (x: u32, y: u32, z: u32) -> u32 { return (x & y) ^ ( (~x) & z); }
-    MAJ :: (x: u32, y: u32, z: u32) -> u32 { return (x & y) ^ (x & z) ^ (y & z); }
-    BSIG0 :: (x: u32) -> u32 { return ROTR(x, 2) ^ ROTR(x, 13) ^ ROTR(x, 22); }
-    BSIG1 :: (x: u32) -> u32 { return ROTR(x, 6) ^ ROTR(x, 11) ^ ROTR(x, 25); }
-    SSIG0 :: (x: u32) -> u32 { return ROTR(x, 7) ^ ROTR(x, 18) ^ SHR(x, 3); }
-    SSIG1 :: (x: u32) -> u32 { return ROTR(x, 17) ^ ROTR(x, 19) ^ SHR(x, 10); }
-
-    M :: (i: u32, t: u32, data_padded: []u8) -> u32 {
-        dp : u32;
-        idx := (i-1)*64+(t*4);
-        // TODO: Endianness. This is a slow way of enforcing big-endianness.
-        //       Clean up with []u32 and data[(i-1)*16+t] with endian-enforcement.
-        for 0..3 {
-            dp |= (cast(u32) data_padded[idx+it]) << (8*(3-it));
-        }
-        return dp;
-    }
-
-    W : [64]u32;
-    a, b, c, d, e, f, g, h : u32;
-    T1 : u32 = 0;
-    T2 : u32 = 0;
-    H := init;
-    blocks, data_padded := merkle_damgard(data, 64); // 512
-
-    for 1..blocks {
-        // Prepare message schedule W:
-        for t:0..15 {
-            W[t] = M(cast(u32) it, cast(u32) t, data_padded);
-        }
-        for t:16..63 {
-            W[t] = SSIG1(W[t-2]) + W[t-7] + SSIG0(W[t-15]) + W[t-16];
-        }
-
-        // Initialize working variables:
-        a = H[0];
-        b = H[1];
-        c = H[2];
-        d = H[3];
-        e = H[4];
-        f = H[5];
-        g = H[6];
-        h = H[7];
-
-        // Perform main hash computation:
-        for t:0..63 {
-            T1 = h + BSIG1(e) + CH(e,f,g) + sha256_consts[t] + W[t];
-            T2 = BSIG0(a) + MAJ(a,b,c);
-            h = g;
-            g = f;
-            f = e;
-            e = d + T1;
-            d = c;
-            c = b;
-            b = a;
-            a = T1 + T2;
-        }
-
-        // Compute H(i):
-        H[0] += a;
-        H[1] += b;
-        H[2] += c;
-        H[3] += d;
-        H[4] += e;
-        H[5] += f;
-        H[6] += g;
-        H[7] += h;
-    }
-
-    free(data_padded.data);
-    return H;
-}
 
 sha384sum :: (data: string) -> string {
     return sha384sum(cast([]u8)data);
@@ -198,7 +118,7 @@ sha384sum :: (data: []u8) -> string {
         0xcbbb9d5dc1059ed8, 0x629a292a367cd507, 0x9159015a3070dd17, 0x152fecd8f70e5939,
         0x67332667ffc00b31, 0x8eb44a8768581511, 0xdb0c2e0d64f98fa7, 0x47b5481dbefa4fa4
     };
-    H := sha512base(data, init);
+    H := shabase(u64, data, init);
     digest: String_Builder;
     for 0..5 append(*digest, sprint("%", formatInt(H[it], base=16, minimum_digits=16)));
     return builder_to_string(*digest);
@@ -214,51 +134,71 @@ sha512sum :: (data: []u8) -> string {
         0x6a09e667f3bcc908, 0xbb67ae8584caa73b, 0x3c6ef372fe94f82b, 0xa54ff53a5f1d36f1,
         0x510e527fade682d1, 0x9b05688c2b3e6c1f, 0x1f83d9abfb41bd6b, 0x5be0cd19137e2179
     };
-    H := sha512base(data, init);
+    H := shabase(u64, data, init);
     digest: String_Builder;
     for 0..7 append(*digest, sprint("%", formatInt(H[it], base=16, minimum_digits=16)));
     return builder_to_string(*digest);
 }
 
-sha512base :: (data: []u8, init: [8]u64) -> [8]u64 {
-    // This function is used for SHA512 and SHA384.
-    // Only difference is initialization vector and output length.
 
-    ROTR :: (x: u64, n: u64) -> u64 { return ((x >> n) | (x << (64-n))); }
-    ROTL :: (x: u64, n: u64) -> u64 { return ((x << n) | (x >> (64-n))); }
-    SHR  :: (x: u64, n: u64) -> u64 { return (x >> n); }
-    SHL  :: (x: u64, n: u64) -> u64 { return (x << n); }
-    CH :: (x: u64, y: u64, z: u64) -> u64 { return (x & y) ^ ( (~x) & z); }
-    MAJ :: (x: u64, y: u64, z: u64) -> u64 { return (x & y) ^ (x & z) ^ (y & z); }
-    BSIG0 :: (x: u64) -> u64 { return ROTR(x, 28) ^ ROTR(x, 34) ^ ROTR(x, 39); }
-    BSIG1 :: (x: u64) -> u64 { return ROTR(x, 14) ^ ROTR(x, 18) ^ ROTR(x, 41); }
-    SSIG0 :: (x: u64) -> u64 { return ROTR(x, 1) ^ ROTR(x, 8) ^ SHR(x, 7); }
-    SSIG1 :: (x: u64) -> u64 { return ROTR(x, 19) ^ ROTR(x, 61) ^ SHR(x, 6); }
+shabase :: ($T: Type, data: []u8, init: [8]T) -> [8]T {
+    // init is initialization vector.
+    #if T == u32 {
+        // Config for SHA256 and SHA224.
+        WORD :: 32;
+        BLOCK :: 64;
+        BYTES :: 4;
+        WSIZE :: 64;
+        SHA_CONSTS :: sha256_consts;
+        BSIG0 :: (x: u32) -> u32 { return ROTR(x, 2) ^ ROTR(x, 13) ^ ROTR(x, 22); }
+        BSIG1 :: (x: u32) -> u32 { return ROTR(x, 6) ^ ROTR(x, 11) ^ ROTR(x, 25); }
+        SSIG0 :: (x: u32) -> u32 { return ROTR(x, 7) ^ ROTR(x, 18) ^ SHR(x, 3); }
+        SSIG1 :: (x: u32) -> u32 { return ROTR(x, 17) ^ ROTR(x, 19) ^ SHR(x, 10); }
+    }
+    #if T == u64 {
+        // Config for SHA512 and SHA384.
+        WORD :: 64;
+        BLOCK :: 128;
+        BYTES :: 8;
+        WSIZE :: 80;
+        SHA_CONSTS :: sha512_consts;
+        BSIG0 :: (x: T) -> T { return ROTR(x, 28) ^ ROTR(x, 34) ^ ROTR(x, 39); }
+        BSIG1 :: (x: T) -> T { return ROTR(x, 14) ^ ROTR(x, 18) ^ ROTR(x, 41); }
+        SSIG0 :: (x: T) -> T { return ROTR(x, 1) ^ ROTR(x, 8) ^ SHR(x, 7); }
+        SSIG1 :: (x: T) -> T { return ROTR(x, 19) ^ ROTR(x, 61) ^ SHR(x, 6); }
+    }
 
-    M :: (i: u64, t: u64, data_padded: []u8) -> u64 {
-        dp : u64;
-        idx := (i-1)*128+(t*8);
+    ROTR :: (x: T, n: T) -> T { return ((x >> n) | (x << (WORD-n))); }
+    ROTL :: (x: T, n: T) -> T { return ((x << n) | (x >> (WORD-n))); }
+    SHR  :: (x: T, n: T) -> T { return (x >> n); }
+    SHL  :: (x: T, n: T) -> T { return (x << n); }
+    CH :: (x: T, y: T, z: T) -> T { return (x & y) ^ ( (~x) & z); }
+    MAJ :: (x: T, y: T, z: T) -> T { return (x & y) ^ (x & z) ^ (y & z); }
+
+    M :: (i: T, t: T, data_padded: []u8) -> T {
+        dp : T;
+        idx := (i-1)*BLOCK+(t*BYTES);
         // TODO: Endianness. This is a slow way of enforcing big-endianness.
         //       Clean up with []u64 and data[(i-1)*16+t] with endian-enforcement.
-        for 0..7 {
-            dp |= (cast(u64) data_padded[idx+xx it]) << (8*(7-it));
+        for 0..(BYTES-1) {
+            dp |= (cast(T) data_padded[idx+xx it]) << (8*((BYTES-1)-it));
         }
         return dp;
     }
 
-    W : [80]u64;
-    a, b, c, d, e, f, g, h : u64;
-    T1 : u64 = 0;
-    T2 : u64 = 0;
+    W : [WSIZE]T;
+    a, b, c, d, e, f, g, h : T;
+    T1 : T = 0;
+    T2 : T = 0;
     H := init;
-    blocks, data_padded := merkle_damgard(data, 128);
+    blocks, data_padded := merkle_damgard(data, BLOCK);
 
     for 1..blocks {
         // Prepare message schedule W:
         for t:0..15 {
-            W[t] = M(cast(u64) it, cast(u64) t, data_padded);
+            W[t] = M(cast(T) it, cast(T) t, data_padded);
         }
-        for t:16..79 {
+        for t:16..WSIZE-1 {
             W[t] = SSIG1(W[t-2]) + W[t-7] + SSIG0(W[t-15]) + W[t-16];
         }
 
@@ -273,8 +213,8 @@ sha512base :: (data: []u8, init: [8]u64) -> [8]u64 {
         h = H[7];
 
         // Perform main hash computation:
-        for t:0..79 {
-            T1 = h + BSIG1(e) + CH(e,f,g) + sha512_consts[t] + W[t];
+        for t:0..WSIZE-1 {
+            T1 = h + BSIG1(e) + CH(e,f,g) + SHA_CONSTS[t] + W[t];
             T2 = BSIG0(a) + MAJ(a,b,c);
             h = g;
             g = f;
