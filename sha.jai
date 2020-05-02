@@ -14,7 +14,7 @@ sha256sum :: (data: []u8) -> string {
     };
     H := shabase(u32, data, init);
     digest: String_Builder;
-    for 0..7 append(*digest, sprint("%", formatInt(H[it], base=16, minimum_digits=8)));
+    for 0..7 append(*digest, tprint("%", formatInt(H[it], base=16, minimum_digits=8)));
     return builder_to_string(*digest);
 }
 
@@ -31,7 +31,7 @@ sha224sum :: (data: []u8) -> string {
 
     H := shabase(u32, data, init);
     digest: String_Builder;
-    for 0..6 append(*digest, sprint("%", formatInt(H[it], base=16, minimum_digits=8)));
+    for 0..6 append(*digest, tprint("%", formatInt(H[it], base=16, minimum_digits=8)));
     return builder_to_string(*digest);
 }
 
@@ -48,7 +48,7 @@ sha384sum :: (data: []u8) -> string {
     };
     H := shabase(u64, data, init);
     digest: String_Builder;
-    for 0..5 append(*digest, sprint("%", formatInt(H[it], base=16, minimum_digits=16)));
+    for 0..5 append(*digest, tprint("%", formatInt(H[it], base=16, minimum_digits=16)));
     return builder_to_string(*digest);
 }
 
@@ -64,7 +64,7 @@ sha512sum :: (data: []u8) -> string {
     };
     H := shabase(u64, data, init);
     digest: String_Builder;
-    for 0..7 append(*digest, sprint("%", formatInt(H[it], base=16, minimum_digits=16)));
+    for 0..7 append(*digest, tprint("%", formatInt(H[it], base=16, minimum_digits=16)));
     return builder_to_string(*digest);
 }
 
@@ -144,7 +144,6 @@ shabase :: ($T: Type, data: []u8, init: [8]T) -> [8]T {
     }
 
     ROTR :: (x: T, n: T) -> T { return ((x >> n) | (x << (WORD-n))); }
-    ROTL :: (x: T, n: T) -> T { return ((x << n) | (x >> (WORD-n))); }
     SHR  :: (x: T, n: T) -> T { return (x >> n); }
     SHL  :: (x: T, n: T) -> T { return (x << n); }
     CH :: (x: T, y: T, z: T) -> T { return (x & y) ^ ( (~x) & z); }
