@@ -2,11 +2,11 @@
 // Standard: https://tools.ietf.org/html/rfc4634
 // Smári McCarthy, 2020-05-01
 
-sha256sum :: (data: string) -> string {
-    return sha256sum(cast([]u8)data);
+sha256 :: (data: string) -> string {
+    return sha256(cast([]u8)data);
 }
 
-sha256sum :: (data: []u8) -> string {
+sha256 :: (data: []u8) -> string {
     init := {:u32:
         // Initialization vector
         0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
@@ -18,11 +18,11 @@ sha256sum :: (data: []u8) -> string {
     return builder_to_string(*digest);
 }
 
-sha224sum :: (data: string) -> string {
-    return sha224sum(cast([]u8)data);
+sha224 :: (data: string) -> string {
+    return sha224(cast([]u8)data);
 }
 
-sha224sum :: (data: []u8) -> string {
+sha224 :: (data: []u8) -> string {
     init := {:u32:
         // Initialization vector
         0xc1059ed8, 0x367cd507, 0x3070dd17, 0xf70e5939,
@@ -36,11 +36,11 @@ sha224sum :: (data: []u8) -> string {
 }
 
 
-sha384sum :: (data: string) -> string {
-    return sha384sum(cast([]u8)data);
+sha384 :: (data: string) -> string {
+    return sha384(cast([]u8)data);
 }
 
-sha384sum :: (data: []u8) -> string {
+sha384 :: (data: []u8) -> string {
     init := {:u64:
         // Initialization vector
         0xcbbb9d5dc1059ed8, 0x629a292a367cd507, 0x9159015a3070dd17, 0x152fecd8f70e5939,
@@ -52,11 +52,11 @@ sha384sum :: (data: []u8) -> string {
     return builder_to_string(*digest);
 }
 
-sha512sum :: (data: string) -> string {
-    return sha512sum(cast([]u8)data);
+sha512 :: (data: string) -> string {
+    return sha512(cast([]u8)data);
 }
 
-sha512sum :: (data: []u8) -> string {
+sha512 :: (data: []u8) -> string {
     init := {:u64:
         // Initialization vector
         0x6a09e667f3bcc908, 0xbb67ae8584caa73b, 0x3c6ef372fe94f82b, 0xa54ff53a5f1d36f1,
