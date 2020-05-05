@@ -125,10 +125,10 @@ shabase :: ($T: Type, data: []u8, init: [8]T) -> [8]T {
         BYTES :: 4;
         WSIZE :: 64;
         SHA_CONSTS :: sha256_consts;
-        BSIG0 :: (x: u32) -> u32 { return ROTR(x, 2) ^ ROTR(x, 13) ^ ROTR(x, 22); }
-        BSIG1 :: (x: u32) -> u32 { return ROTR(x, 6) ^ ROTR(x, 11) ^ ROTR(x, 25); }
-        SSIG0 :: (x: u32) -> u32 { return ROTR(x, 7) ^ ROTR(x, 18) ^ SHR(x, 3); }
-        SSIG1 :: (x: u32) -> u32 { return ROTR(x, 17) ^ ROTR(x, 19) ^ SHR(x, 10); }
+        BSIG0 :: (x: u32) -> u32 { return (x >>> 2) ^ (x >>> 13) ^ (x >>> 22); }
+        BSIG1 :: (x: u32) -> u32 { return (x >>> 6) ^ (x >>> 11) ^ (x >>> 25); }
+        SSIG0 :: (x: u32) -> u32 { return (x >>> 7) ^ (x >>> 18) ^ (x >> 3); }
+        SSIG1 :: (x: u32) -> u32 { return (x >>> 17) ^ (x >>> 19) ^ (x >> 10); }
     }
     #if T == u64 {
         // Config for SHA512 and SHA384.
@@ -137,15 +137,12 @@ shabase :: ($T: Type, data: []u8, init: [8]T) -> [8]T {
         BYTES :: 8;
         WSIZE :: 80;
         SHA_CONSTS :: sha512_consts;
-        BSIG0 :: (x: T) -> T { return ROTR(x, 28) ^ ROTR(x, 34) ^ ROTR(x, 39); }
-        BSIG1 :: (x: T) -> T { return ROTR(x, 14) ^ ROTR(x, 18) ^ ROTR(x, 41); }
-        SSIG0 :: (x: T) -> T { return ROTR(x, 1) ^ ROTR(x, 8) ^ SHR(x, 7); }
-        SSIG1 :: (x: T) -> T { return ROTR(x, 19) ^ ROTR(x, 61) ^ SHR(x, 6); }
+        BSIG0 :: (x: T) -> T { return (x >>> 28) ^ (x >>> 34) ^ (x >>> 39); }
+        BSIG1 :: (x: T) -> T { return (x >>> 14) ^ (x >>> 18) ^ (x >>> 41); }
+        SSIG0 :: (x: T) -> T { return (x >>> 1) ^ (x >>> 8) ^ (x >> 7); }
+        SSIG1 :: (x: T) -> T { return (x >>> 19) ^ (x >>> 61) ^ (x >> 6); }
     }
 
-    ROTR :: (x: T, n: T) -> T { return ((x >> n) | (x << (WORD-n))); }
-    SHR  :: (x: T, n: T) -> T { return (x >> n); }
-    SHL  :: (x: T, n: T) -> T { return (x << n); }
     CH :: (x: T, y: T, z: T) -> T { return (x & y) ^ ( (~x) & z); }
     MAJ :: (x: T, y: T, z: T) -> T { return (x & y) ^ (x & z) ^ (y & z); }
 
