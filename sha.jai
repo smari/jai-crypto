@@ -2,67 +2,51 @@
 // Standard: https://tools.ietf.org/html/rfc4634
 // Smári McCarthy, 2020-05-01
 
-sha256 :: (data: string) -> string {
-    return sha256(cast([]u8)data);
-}
+sha256 :: (data: string) -> string { return sha256(cast([]u8)data); }
+sha224 :: (data: string) -> string { return sha224(cast([]u8)data); }
+sha384 :: (data: string) -> string { return sha384(cast([]u8)data); }
+sha512 :: (data: string) -> string { return sha512(cast([]u8)data); }
 
 sha256 :: (data: []u8) -> string {
-    init := {:u32:
-        // Initialization vector
+    initialization_vector := {:u32:
         0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
         0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
     };
-    H := shabase(u32, data, init);
+    H := shabase(u32, data, initialization_vector);
     digest: String_Builder;
     for 0..7 append(*digest, tprint("%", formatInt(H[it], base=16, minimum_digits=8)));
     return builder_to_string(*digest);
 }
 
-sha224 :: (data: string) -> string {
-    return sha224(cast([]u8)data);
-}
-
 sha224 :: (data: []u8) -> string {
-    init := {:u32:
-        // Initialization vector
+    initialization_vector := {:u32:
         0xc1059ed8, 0x367cd507, 0x3070dd17, 0xf70e5939,
         0xffc00b31, 0x68581511, 0x64f98fa7, 0xbefa4fa4
     };
 
-    H := shabase(u32, data, init);
+    H := shabase(u32, data, initialization_vector);
     digest: String_Builder;
     for 0..6 append(*digest, tprint("%", formatInt(H[it], base=16, minimum_digits=8)));
     return builder_to_string(*digest);
 }
 
-
-sha384 :: (data: string) -> string {
-    return sha384(cast([]u8)data);
-}
-
 sha384 :: (data: []u8) -> string {
-    init := {:u64:
-        // Initialization vector
+    initialization_vector := {:u64:
         0xcbbb9d5dc1059ed8, 0x629a292a367cd507, 0x9159015a3070dd17, 0x152fecd8f70e5939,
         0x67332667ffc00b31, 0x8eb44a8768581511, 0xdb0c2e0d64f98fa7, 0x47b5481dbefa4fa4
     };
-    H := shabase(u64, data, init);
+    H := shabase(u64, data, initialization_vector);
     digest: String_Builder;
     for 0..5 append(*digest, tprint("%", formatInt(H[it], base=16, minimum_digits=16)));
     return builder_to_string(*digest);
 }
 
-sha512 :: (data: string) -> string {
-    return sha512(cast([]u8)data);
-}
-
 sha512 :: (data: []u8) -> string {
-    init := {:u64:
-        // Initialization vector
+    initialization_vector := {:u64:
         0x6a09e667f3bcc908, 0xbb67ae8584caa73b, 0x3c6ef372fe94f82b, 0xa54ff53a5f1d36f1,
         0x510e527fade682d1, 0x9b05688c2b3e6c1f, 0x1f83d9abfb41bd6b, 0x5be0cd19137e2179
     };
-    H := shabase(u64, data, init);
+    H := shabase(u64, data, initialization_vector);
     digest: String_Builder;
     for 0..7 append(*digest, tprint("%", formatInt(H[it], base=16, minimum_digits=16)));
     return builder_to_string(*digest);
@@ -70,7 +54,6 @@ sha512 :: (data: []u8) -> string {
 
 
 #scope_file
-
 #load "md.jai";
 
 sha256_consts :: {:u32:
@@ -116,8 +99,7 @@ sha512_consts :: {:u64:
 };
 
 
-shabase :: ($T: Type, data: []u8, init: [8]T) -> [8]T {
-    // init is initialization vector.
+shabase :: ($T: Type, data: []u8, initialization_vector: [8]T) -> [8]T {
     #if T == u32 {
         // Config for SHA256 and SHA224.
         WORD :: 32;
@@ -161,7 +143,7 @@ shabase :: ($T: Type, data: []u8, init: [8]T) -> [8]T {
     a, b, c, d, e, f, g, h : T;
     T1 : T = 0;
     T2 : T = 0;
-    H := init;
+    H := initialization_vector;
     blocks, data_padded := merkle_damgard(data, BLOCK);
 
     for 1..blocks {
