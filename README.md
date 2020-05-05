@@ -2,7 +2,7 @@
 
 This is very rudimentary native cryptography library for Jai.
 
-Currently it supports only the SHA-2 family of hash functions, but more will be
+Currently it supports the SHA-2 family of hash functions and MD5, but more will be
 added later. See *Features* below.
 
 ## Usage
@@ -27,11 +27,18 @@ that may or may not be based on this one. You may end up confusing yourself or o
 
 ## Hash functions
 
- * `sha224sum :: (string) -> string`
- * `sha224sum :: ([]u8) -> string`
- * `sha256sum :: (string) -> string`
- * `sha256sum :: ([]u8) -> string`
- * `sha384sum :: (string) -> string`
- * `sha384sum :: ([]u8) -> string`
- * `sha512sum :: (string) -> string`
- * `sha512sum :: ([]u8) -> string`
+ * `sha224 :: (string) -> string`
+ * `sha224 :: ([]u8) -> string`
+ * `sha256 :: (string) -> string`
+ * `sha256 :: ([]u8) -> string`
+ * `sha384 :: (string) -> string`
+ * `sha384 :: ([]u8) -> string`
+ * `sha512 :: (string) -> string`
+ * `sha512 :: ([]u8) -> string`
+ * `md5 :: (string) -> string`
+
+
+# Authors
+
+ * [Smári McCarthy](https://github.com/smari/)
+ * [Mim Hufford](https://github.com/mimhufford/)
