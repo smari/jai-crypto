@@ -1,7 +1,7 @@
 // Merkle-Damgård construction, as used by many hash functions.
 // Smári McCarthy, 2020-05-01.
 
-merkle_damgard :: (data: []u8, block_size: int) -> blocks: int, padded: []u8 #must {
+merkle_damgard :: (data: string, block_size: int) -> blocks: int, padded: string #must {
     // We can allow a Merkel-Damgård construction of (roughly) any block size.
     // We only really want 64 and 128 bytes though.
     length_block := block_size >> 3;    // Byte count for input length counter.
@@ -11,7 +11,7 @@ merkle_damgard :: (data: []u8, block_size: int) -> blocks: int, padded: []u8 #mu
     padding_bytes  := pad_length - lastblock_size;
     if lastblock_size > pad_length { padding_bytes += block_size; };
 
-    data_padded: []u8;
+    data_padded: string;
     // Structure: [data][guard][padding][length]. The +1 is for the guard byte.
     data_padded.count = data.count + 1 + padding_bytes + length_block;
     data_padded.data = alloc(data_padded.count);

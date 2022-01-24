@@ -2,12 +2,14 @@
 // Standard: https://tools.ietf.org/html/rfc4634
 // Smári McCarthy, 2020-05-01
 
+/*
 sha256 :: (data: string) -> string { return sha256(cast([]u8)data); }
 sha224 :: (data: string) -> string { return sha224(cast([]u8)data); }
 sha384 :: (data: string) -> string { return sha384(cast([]u8)data); }
 sha512 :: (data: string) -> string { return sha512(cast([]u8)data); }
+*/
 
-sha256 :: (data: []u8) -> string {
+sha256 :: (data: string) -> string {
     initialization_vector := u32.[
         0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
         0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
@@ -18,7 +20,7 @@ sha256 :: (data: []u8) -> string {
     return builder_to_string(*digest);
 }
 
-sha224 :: (data: []u8) -> string {
+sha224 :: (data: string) -> string {
     initialization_vector := u32.[
         0xc1059ed8, 0x367cd507, 0x3070dd17, 0xf70e5939,
         0xffc00b31, 0x68581511, 0x64f98fa7, 0xbefa4fa4
@@ -30,7 +32,7 @@ sha224 :: (data: []u8) -> string {
     return builder_to_string(*digest);
 }
 
-sha384 :: (data: []u8) -> string {
+sha384 :: (data: string) -> string {
     initialization_vector := u64.[
         0xcbbb9d5dc1059ed8, 0x629a292a367cd507, 0x9159015a3070dd17, 0x152fecd8f70e5939,
         0x67332667ffc00b31, 0x8eb44a8768581511, 0xdb0c2e0d64f98fa7, 0x47b5481dbefa4fa4
@@ -41,7 +43,7 @@ sha384 :: (data: []u8) -> string {
     return builder_to_string(*digest);
 }
 
-sha512 :: (data: []u8) -> string {
+sha512 :: (data: string) -> string {
     initialization_vector := u64.[
         0x6a09e667f3bcc908, 0xbb67ae8584caa73b, 0x3c6ef372fe94f82b, 0xa54ff53a5f1d36f1,
         0x510e527fade682d1, 0x9b05688c2b3e6c1f, 0x1f83d9abfb41bd6b, 0x5be0cd19137e2179
@@ -50,6 +52,46 @@ sha512 :: (data: []u8) -> string {
     digest: String_Builder;
     for 0..7 append(*digest, tprint("%", formatInt(H[it], base=16, minimum_digits=16)));
     return builder_to_string(*digest);
+}
+
+
+hmac_sha256 :: (key: string, data: string) -> string {
+/*    k       : [SHA256_BLOCK_SIZE]u8;
+ *    k_ipad  : [SHA256_BLOCK_SIZE]u8;
+ *   k_opad  : [SHA256_BLOCK_SIZE]u8;
+ *   ihash   : [SHA256_BLOCK_SIZE]u8;
+ *   ohash   : [SHA256_BLOCK_SIZE]u8;
+ */
+/*
+      size_t sz;
+  int i;
+
+  memset(k, 0, sizeof(k));
+  memset(k_ipad, 0x36, SHA256_BLOCK_SIZE);
+  memset(k_opad, 0x5c, SHA256_BLOCK_SIZE);
+
+  if (keylen > SHA256_BLOCK_SIZE) {
+    // If the key is larger than the hash algorithm's
+    // block size, we must digest it first.
+    shabase(u32, key, k, sizeof(k));
+  } else {
+    memcpy(k, key, keylen);
+  }
+
+  for (i = 0; i < SHA256_BLOCK_SIZE; i++) {
+    k_ipad[i] ^= k[i];
+    k_opad[i] ^= k[i];
+  }
+
+  // Perform HMAC algorithm: ( https://tools.ietf.org/html/rfc2104 )
+  //      `H(K XOR opad, H(K XOR ipad, data))`
+  H(k_ipad, sizeof(k_ipad), data, datalen, ihash, sizeof(ihash));
+  H(k_opad, sizeof(k_opad), ihash, sizeof(ihash), ohash, sizeof(ohash));
+
+  sz = (outlen > SHA256_HASH_SIZE) ? SHA256_HASH_SIZE : outlen;
+  memcpy(out, ohash, sz);
+*/
+    return "";
 }
 
 
@@ -108,8 +150,21 @@ sha_update :: (data: string, instate: [8]$T) -> [8]T {
 }
 
 
+BSIG0 :: (x: u32) -> u32 { return (x >>> 2) ^ (x >>> 13) ^ (x >>> 22); }
+BSIG1 :: (x: u32) -> u32 { return (x >>> 6) ^ (x >>> 11) ^ (x >>> 25); }
+SSIG0 :: (x: u32) -> u32 { return (x >>> 7) ^ (x >>> 18) ^ (x >> 3); }
+SSIG1 :: (x: u32) -> u32 { return (x >>> 17) ^ (x >>> 19) ^ (x >> 10); }
 
-shabase :: ($T: Type, data: []u8, initialization_vector: [8]T) -> [8]T {
+BSIG0 :: (x: u64) -> u64 { return (x >>> 28) ^ (x >>> 34) ^ (x >>> 39); }
+BSIG1 :: (x: u64) -> u64 { return (x >>> 14) ^ (x >>> 18) ^ (x >>> 41); }
+SSIG0 :: (x: u64) -> u64 { return (x >>> 1) ^ (x >>> 8) ^ (x >> 7); }
+SSIG1 :: (x: u64) -> u64 { return (x >>> 19) ^ (x >>> 61) ^ (x >> 6); }
+
+CH  :: (x: $T, y: T, z: T) -> T { return (x & y) ^ ( (~x) & z); }
+MAJ :: (x: $T, y: T, z: T) -> T { return (x & y) ^ (x & z) ^ (y & z); }
+
+
+shabase :: ($T: Type, data: string, initialization_vector: [8]T) -> [8]T {
     #if T == u32 {
         // Config for SHA256 and SHA224.
         WORD :: 32;
@@ -117,10 +172,6 @@ shabase :: ($T: Type, data: []u8, initialization_vector: [8]T) -> [8]T {
         BYTES :: 4;
         WSIZE :: 64;
         SHA_CONSTS :: sha256_consts;
-        BSIG0 :: (x: u32) -> u32 { return (x >>> 2) ^ (x >>> 13) ^ (x >>> 22); }
-        BSIG1 :: (x: u32) -> u32 { return (x >>> 6) ^ (x >>> 11) ^ (x >>> 25); }
-        SSIG0 :: (x: u32) -> u32 { return (x >>> 7) ^ (x >>> 18) ^ (x >> 3); }
-        SSIG1 :: (x: u32) -> u32 { return (x >>> 17) ^ (x >>> 19) ^ (x >> 10); }
     }
     #if T == u64 {
         // Config for SHA512 and SHA384.
@@ -129,16 +180,9 @@ shabase :: ($T: Type, data: []u8, initialization_vector: [8]T) -> [8]T {
         BYTES :: 8;
         WSIZE :: 80;
         SHA_CONSTS :: sha512_consts;
-        BSIG0 :: (x: T) -> T { return (x >>> 28) ^ (x >>> 34) ^ (x >>> 39); }
-        BSIG1 :: (x: T) -> T { return (x >>> 14) ^ (x >>> 18) ^ (x >>> 41); }
-        SSIG0 :: (x: T) -> T { return (x >>> 1) ^ (x >>> 8) ^ (x >> 7); }
-        SSIG1 :: (x: T) -> T { return (x >>> 19) ^ (x >>> 61) ^ (x >> 6); }
     }
 
-    CH  :: (x: T, y: T, z: T) -> T { return (x & y) ^ ( (~x) & z); }
-    MAJ :: (x: T, y: T, z: T) -> T { return (x & y) ^ (x & z) ^ (y & z); }
-
-    M :: (i: T, t: T, data_padded: []u8) -> T {
+    M :: (i: T, t: T, data_padded: string) -> T {
         dp : T;
         idx := (i-1)*BLOCK+(t*BYTES);
         // TODO: Endianness. This is a slow way of enforcing big-endianness.
@@ -200,6 +244,6 @@ shabase :: ($T: Type, data: []u8, initialization_vector: [8]T) -> [8]T {
         H[7] += h;
     }
 
-    free(data_padded.data);
+    free(data_padded);
     return H;
 }
