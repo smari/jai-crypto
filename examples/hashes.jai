@@ -3,11 +3,11 @@
 #load "../md5.jai";
 
 teststring :: (testname: string, a: string, b: string) {
-    print("%", testname);
+    print("%\r\e[15C", testname);
     if a == b { print(" ... success\n"); }
     else {
-        print(" ... fail.\n");
-        print("     ─ Failed comparing:\n%\n%", a, b);
+        print(" ... fail:\n");
+        print("\e[22C\"%\"\n\e[19C ≠ \"%\"\n", a, b);
     }
 }
 
@@ -25,6 +25,10 @@ main :: () {
     teststring("MD5", md5("The quick brown fox jumps over the lazy dog"), "9e107d9d372bb6826bd81d3542a419d6");
     teststring("MD5", md5("The man in black fled across the desert the gunslinger followed."), "fe48b3e0d34c4a261dcd13fc277888a1");
     teststring("MD5", md5("The man in black fled across the desert the gunslinger followed. The man in black fled across the desert the gunslinger followed."), "eab13003ea3ff3c14370019a685956d3");
+
+    teststring("HMAC_SHA256", hmac_sha256("key", "The quick brown fox jumps over the lazy dog"), "f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8");
+    teststring("HMAC_SHA256", hmac_sha256("The quick brown fox jumps over the lazy dogThe quick brown fox jumps over the lazy dog", "message"), "5597b93a2843078cbb0c920ae41dfe20f1685e10c67e423c11ab91adfc319d12");
+    print("\n\n");
 }
 
 #run main();
