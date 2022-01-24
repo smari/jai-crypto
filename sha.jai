@@ -8,10 +8,10 @@ sha384 :: (data: string) -> string { return sha384(cast([]u8)data); }
 sha512 :: (data: string) -> string { return sha512(cast([]u8)data); }
 
 sha256 :: (data: []u8) -> string {
-    initialization_vector := {:u32:
+    initialization_vector := u32.[
         0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
         0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
-    };
+    ];
     H := shabase(u32, data, initialization_vector);
     digest: String_Builder;
     for 0..7 append(*digest, tprint("%", formatInt(H[it], base=16, minimum_digits=8)));
@@ -19,10 +19,10 @@ sha256 :: (data: []u8) -> string {
 }
 
 sha224 :: (data: []u8) -> string {
-    initialization_vector := {:u32:
+    initialization_vector := u32.[
         0xc1059ed8, 0x367cd507, 0x3070dd17, 0xf70e5939,
         0xffc00b31, 0x68581511, 0x64f98fa7, 0xbefa4fa4
-    };
+    ];
 
     H := shabase(u32, data, initialization_vector);
     digest: String_Builder;
@@ -31,10 +31,10 @@ sha224 :: (data: []u8) -> string {
 }
 
 sha384 :: (data: []u8) -> string {
-    initialization_vector := {:u64:
+    initialization_vector := u64.[
         0xcbbb9d5dc1059ed8, 0x629a292a367cd507, 0x9159015a3070dd17, 0x152fecd8f70e5939,
         0x67332667ffc00b31, 0x8eb44a8768581511, 0xdb0c2e0d64f98fa7, 0x47b5481dbefa4fa4
-    };
+    ];
     H := shabase(u64, data, initialization_vector);
     digest: String_Builder;
     for 0..5 append(*digest, tprint("%", formatInt(H[it], base=16, minimum_digits=16)));
@@ -42,10 +42,10 @@ sha384 :: (data: []u8) -> string {
 }
 
 sha512 :: (data: []u8) -> string {
-    initialization_vector := {:u64:
+    initialization_vector := u64.[
         0x6a09e667f3bcc908, 0xbb67ae8584caa73b, 0x3c6ef372fe94f82b, 0xa54ff53a5f1d36f1,
         0x510e527fade682d1, 0x9b05688c2b3e6c1f, 0x1f83d9abfb41bd6b, 0x5be0cd19137e2179
-    };
+    ];
     H := shabase(u64, data, initialization_vector);
     digest: String_Builder;
     for 0..7 append(*digest, tprint("%", formatInt(H[it], base=16, minimum_digits=16)));
@@ -56,7 +56,7 @@ sha512 :: (data: []u8) -> string {
 #scope_file
 #load "md.jai";
 
-sha256_consts :: {:u32:
+sha256_consts :: u32.[
     0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
     0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
     0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
@@ -73,9 +73,9 @@ sha256_consts :: {:u32:
     0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
     0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
     0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
-};
+];
 
-sha512_consts :: {:u64:
+sha512_consts :: u64.[
     0x428a2f98d728ae22, 0x7137449123ef65cd, 0xb5c0fbcfec4d3b2f, 0xe9b5dba58189dbbc,
     0x3956c25bf348b538, 0x59f111f1b605d019, 0x923f82a4af194f9b, 0xab1c5ed5da6d8118,
     0xd807aa98a3030242, 0x12835b0145706fbe, 0x243185be4ee4b28c, 0x550c7dc3d5ffb4e2,
@@ -96,7 +96,17 @@ sha512_consts :: {:u64:
     0x06f067aa72176fba, 0x0a637dc5a2c898a6, 0x113f9804bef90dae, 0x1b710b35131c471b,
     0x28db77f523047d84, 0x32caab7b40c72493, 0x3c9ebe0a15c9bebc, 0x431d67c49c100d4c,
     0x4cc5d4becb3e42b6, 0x597f299cfc657e2a, 0x5fcb6fab3ad6faec, 0x6c44198c4a475817
-};
+];
+
+
+sha_init :: ($T: Type, initialization_vector: [8]T) -> [8]T {
+
+}
+
+sha_update :: (data: string, instate: [8]$T) -> [8]T {
+
+}
+
 
 
 shabase :: ($T: Type, data: []u8, initialization_vector: [8]T) -> [8]T {
@@ -125,7 +135,7 @@ shabase :: ($T: Type, data: []u8, initialization_vector: [8]T) -> [8]T {
         SSIG1 :: (x: T) -> T { return (x >>> 19) ^ (x >>> 61) ^ (x >> 6); }
     }
 
-    CH :: (x: T, y: T, z: T) -> T { return (x & y) ^ ( (~x) & z); }
+    CH  :: (x: T, y: T, z: T) -> T { return (x & y) ^ ( (~x) & z); }
     MAJ :: (x: T, y: T, z: T) -> T { return (x & y) ^ (x & z) ^ (y & z); }
 
     M :: (i: T, t: T, data_padded: []u8) -> T {
