@@ -2,22 +2,46 @@
 // Standard: https://tools.ietf.org/html/rfc4634
 // Smári McCarthy, 2020-05-01
 
-/*
-sha256 :: (data: string) -> string { return sha256(cast([]u8)data); }
-sha224 :: (data: string) -> string { return sha224(cast([]u8)data); }
-sha384 :: (data: string) -> string { return sha384(cast([]u8)data); }
-sha512 :: (data: string) -> string { return sha512(cast([]u8)data); }
-*/
+// TODO: We need to get away from endianism!
+//       Most of this code is dumb because it's very stuck in little-endian
+//       and assumes we're always going to want to end up with strings.
+
+htonl :: (s: u32) -> u32 {
+    return (((s & 0xff000000) >> 24) |
+            ((s & 0x00ff0000) >> 8)  | 
+            ((s & 0x0000ff00) << 8)  |
+            ((s & 0x000000ff) << 24));
+}
+
 
 sha256 :: (data: string) -> string {
+    H := sha256_base(data);
+    digest: String_Builder;
+    for 0..7 append(*digest, tprint("%", formatInt(H[it], base=16, minimum_digits=8)));
+    return builder_to_string(*digest);
+}
+
+sha256_base :: (data: string) -> [8]u32 {
+    initialization_vector := u32.[
+        0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+        0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
+    ];
+    H := shabase(u32, data, initialization_vector);    
+    return H;
+}
+
+sha256_base_flipped :: (data: string) -> [8]u32 {
     initialization_vector := u32.[
         0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
         0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
     ];
     H := shabase(u32, data, initialization_vector);
-    digest: String_Builder;
-    for 0..7 append(*digest, tprint("%", formatInt(H[it], base=16, minimum_digits=8)));
-    return builder_to_string(*digest);
+    I : [8]u32;
+    for i:0..7 {
+        I[i] = htonl(H[i]);
+    }
+
+    return I;
 }
 
 sha224 :: (data: string) -> string {
@@ -56,42 +80,47 @@ sha512 :: (data: string) -> string {
 
 
 hmac_sha256 :: (key: string, data: string) -> string {
-/*    k       : [SHA256_BLOCK_SIZE]u8;
- *    k_ipad  : [SHA256_BLOCK_SIZE]u8;
- *   k_opad  : [SHA256_BLOCK_SIZE]u8;
- *   ihash   : [SHA256_BLOCK_SIZE]u8;
- *   ohash   : [SHA256_BLOCK_SIZE]u8;
- */
-/*
-      size_t sz;
-  int i;
+    SHA256_BLOCK_SIZE :: 64;
+    SHA256_HASH_SIZE :: 32;
 
-  memset(k, 0, sizeof(k));
-  memset(k_ipad, 0x36, SHA256_BLOCK_SIZE);
-  memset(k_opad, 0x5c, SHA256_BLOCK_SIZE);
+    k       : [SHA256_BLOCK_SIZE]u8;
+    k_ipad  : [SHA256_BLOCK_SIZE]u8 = ---;
+    k_opad  : [SHA256_BLOCK_SIZE]u8 = ---;
+    ihash   : [SHA256_HASH_SIZE]u8 = ---;
+    ohash   : [SHA256_HASH_SIZE]u8 = ---;
 
-  if (keylen > SHA256_BLOCK_SIZE) {
-    // If the key is larger than the hash algorithm's
-    // block size, we must digest it first.
-    shabase(u32, key, k, sizeof(k));
-  } else {
-    memcpy(k, key, keylen);
-  }
+    if key.count > SHA256_BLOCK_SIZE {
+        // If the key is larger than the hash algorithm's
+        // block size, we must digest it first.
+        f := sha256_base_flipped(key);
+        memcpy(k.data, f.data, k.count/2);
+    } else {
+        memcpy(k.data, key.data, key.count);
+    }
 
-  for (i = 0; i < SHA256_BLOCK_SIZE; i++) {
-    k_ipad[i] ^= k[i];
-    k_opad[i] ^= k[i];
-  }
+    memset(k_ipad.data, 0x36,                   SHA256_BLOCK_SIZE);
+    memset(k_opad.data, 0x5c,                   SHA256_BLOCK_SIZE);
 
-  // Perform HMAC algorithm: ( https://tools.ietf.org/html/rfc2104 )
-  //      `H(K XOR opad, H(K XOR ipad, data))`
-  H(k_ipad, sizeof(k_ipad), data, datalen, ihash, sizeof(ihash));
-  H(k_opad, sizeof(k_opad), ihash, sizeof(ihash), ohash, sizeof(ohash));
+    for i:0..SHA256_BLOCK_SIZE-1 {
+        k_ipad[i] ^= k[i];
+        k_opad[i] ^= k[i];
+    }
 
-  sz = (outlen > SHA256_HASH_SIZE) ? SHA256_HASH_SIZE : outlen;
-  memcpy(out, ohash, sz);
-*/
-    return "";
+    H :: (x: $A, y: $B) -> [8]u32 {
+        buf := talloc_string(x.count + y.count);
+        memcpy(buf.data,           x.data, x.count);
+        memcpy(buf.data + x.count, y.data, y.count);
+        return sha256_base_flipped(buf);
+    }
+
+    // Perform HMAC algorithm: ( https://tools.ietf.org/html/rfc2104 )
+    //      `H(K XOR opad, H(K XOR ipad, data))`
+    memcpy(ihash.data,  H(k_ipad, data).data,   SHA256_HASH_SIZE);
+    memcpy(ohash.data,  H(k_opad, ihash).data,  SHA256_HASH_SIZE);
+
+    digest: String_Builder;
+    for 0..SHA256_HASH_SIZE-1 append(*digest, tprint("%", formatInt(ohash[it], base=16, minimum_digits=2)));
+    return builder_to_string(*digest);
 }
 
 
@@ -139,15 +168,6 @@ sha512_consts :: u64.[
     0x28db77f523047d84, 0x32caab7b40c72493, 0x3c9ebe0a15c9bebc, 0x431d67c49c100d4c,
     0x4cc5d4becb3e42b6, 0x597f299cfc657e2a, 0x5fcb6fab3ad6faec, 0x6c44198c4a475817
 ];
-
-
-sha_init :: ($T: Type, initialization_vector: [8]T) -> [8]T {
-
-}
-
-sha_update :: (data: string, instate: [8]$T) -> [8]T {
-
-}
 
 
 BSIG0 :: (x: u32) -> u32 { return (x >>> 2) ^ (x >>> 13) ^ (x >>> 22); }

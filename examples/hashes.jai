@@ -26,7 +26,8 @@ main :: () {
     teststring("MD5", md5("The man in black fled across the desert the gunslinger followed."), "fe48b3e0d34c4a261dcd13fc277888a1");
     teststring("MD5", md5("The man in black fled across the desert the gunslinger followed. The man in black fled across the desert the gunslinger followed."), "eab13003ea3ff3c14370019a685956d3");
 
-    teststring("HMAC_SHA256", hmac_sha256("key", "The quick brown fox jumps over the lazy dog"), "f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8");
+    teststring("HMAC_SHA256", hmac_sha256("super-secret-key", "Hello World!"),                                                                  "4b393abced1c497f8048860ba1ede46a23f1ff5209b18e9c428bddfbb690aad8");
+    teststring("HMAC_SHA256", hmac_sha256("key", "The quick brown fox jumps over the lazy dog"),                                                "f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8");
     teststring("HMAC_SHA256", hmac_sha256("The quick brown fox jumps over the lazy dogThe quick brown fox jumps over the lazy dog", "message"), "5597b93a2843078cbb0c920ae41dfe20f1685e10c67e423c11ab91adfc319d12");
     print("\n\n");
 }
