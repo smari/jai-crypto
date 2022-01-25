@@ -1,12 +1,12 @@
 // SHA2 hash function implementation.
 // Standard: https://tools.ietf.org/html/rfc4634
-// Smári McCarthy, 2020-05-01
+// Smári McCarthy, 2020-05-01; updated 2022-01-25.
 
 // TODO: We need to get away from endianism!
 //       Most of this code is dumb because it's very stuck in little-endian
 //       and assumes we're always going to want to end up with strings.
 
-htonl :: (s: u32) -> u32 {
+flip_endian :: (s: u32) -> u32 {
     return (((s & 0xff000000) >> 24) |
             ((s & 0x00ff0000) >> 8)  | 
             ((s & 0x0000ff00) << 8)  |
@@ -38,7 +38,7 @@ sha256_base_flipped :: (data: string) -> [8]u32 {
     H := shabase(u32, data, initialization_vector);
     I : [8]u32;
     for i:0..7 {
-        I[i] = htonl(H[i]);
+        I[i] = flip_endian(H[i]);
     }
 
     return I;
